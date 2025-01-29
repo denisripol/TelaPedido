@@ -10,7 +10,8 @@ uses
   FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait, Data.DB, FireDAC.Comp.Client,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
   FireDAC.Comp.DataSet, Vcl.StdCtrls, Vcl.DBCtrls, System.ImageList,
-  Vcl.ImgList, cxImageList, cxGraphics, Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls;
+  Vcl.ImgList, cxImageList, cxGraphics, Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, System.IniFiles,
+  FireDAC.Moni.Base, FireDAC.Moni.RemoteClient;
 
 type
   TForm1 = class(TForm)
@@ -18,33 +19,14 @@ type
     FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink;
     dsCliente: TDataSource;
     qyCliente: TFDQuery;
-    qyClientenome: TWideStringField;
-    qyClienteid: TFDAutoIncField;
     qyProduto: TFDQuery;
     dsProduto: TDataSource;
-    qyProdutonome: TWideStringField;
-    qyProdutoid: TFDAutoIncField;
-    qyProdutopreco_venda: TBCDField;
     cxImageList1: TcxImageList;
     gridPedido: TDBGrid;
     dsPedido: TDataSource;
     qyPedido: TFDQuery;
     qyPedidoItens: TFDQuery;
     dsPedidoItens: TDataSource;
-    qyPedidoid: TFDAutoIncField;
-    qyPedidodata_emissao: TDateTimeField;
-    qyPedidoid_cliente: TIntegerField;
-    qyPedidovalor_total: TBCDField;
-    qyClientenome_c: TWideStringField;
-    qyPedidonome_cliente: TWideStringField;
-    qyPedidoItensid: TFDAutoIncField;
-    qyPedidoItensid_pedido: TIntegerField;
-    qyPedidoItensid_produto: TIntegerField;
-    qyPedidoItensquantidade: TLargeintField;
-    qyPedidoItensvalor_unitario: TBCDField;
-    qyPedidoItensvalor_total: TBCDField;
-    qyPedidoItensnome_produto: TWideStringField;
-    qyPedidoItenscliente: TWideStringField;
     Panel1: TPanel;
     edtSumValor: TEdit;
     qyConsultaPedido: TFDQuery;
@@ -60,11 +42,31 @@ type
     Button1: TButton;
     edtPedido: TEdit;
     lblPedido: TLabel;
+    Label1: TLabel;
+    qyPedidoid: TFDAutoIncField;
+    qyPedidodata_emissao: TDateTimeField;
+    qyPedidoid_cliente: TIntegerField;
+    qyPedidonome_cliente: TWideMemoField;
+    qyPedidovalor_total: TBCDField;
     qyConsultaPedidoid: TFDAutoIncField;
     qyConsultaPedidodata_emissao: TDateTimeField;
     qyConsultaPedidoid_cliente: TIntegerField;
     qyConsultaPedidovalor_total: TBCDField;
-    Label1: TLabel;
+    qyClientenome: TWideStringField;
+    qyClientenome_c: TWideStringField;
+    qyClienteid: TFDAutoIncField;
+    qyProdutonome: TWideStringField;
+    qyProdutoid: TFDAutoIncField;
+    qyProdutopreco_venda: TBCDField;
+    qyPedidoItensid: TFDAutoIncField;
+    qyPedidoItensid_pedido: TIntegerField;
+    qyPedidoItensid_produto: TIntegerField;
+    qyPedidoItensquantidade: TLargeintField;
+    qyPedidoItensvalor_unitario: TBCDField;
+    qyPedidoItensvalor_total: TBCDField;
+    qyPedidoItensnome_produto: TWideStringField;
+    qyPedidoItenscliente: TWideStringField;
+    FDMoniRemoteClientLink1: TFDMoniRemoteClientLink;
     procedure FormCreate(Sender: TObject);
     procedure cbProdutoExit(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -77,16 +79,44 @@ type
   private
     jaPossuiPedido : string;
     procedure CarregaPedido;
+    procedure LeGlobal;
   public
     { Public declarations }
   end;
 
 var
   Form1: TForm1;
+  PathSistema: string;   //Caminho padrão do sistema
+  ServMySQL: string;     //Endereço do servidor do banco de dados local
+  PortMySQL: string;     //Porta do servidor local
+  BDMySQL: string;       //Nome do banco de dados
+  UserMySQL: string;     //Usuário do banco de dados local
+  KeyMySQL:string;       //Senha do banco de dados local
 
 implementation
 
 {$R *.dfm}
+
+procedure TForm1.LeGlobal;
+var
+  path: string;
+  ArqGlobal: TIniFile;
+begin
+  PathSistema := ExtractFilePath( Application.ExeName );
+  path := PathSistema + 'global.ini';
+  ArqGlobal := TIniFile.Create( path );
+
+  try
+    //Sessão Banco de Dados - MySQL
+    ServMySQL := ArqGlobal.ReadString('BDMYSQL','SERVER','127.0.0.0');
+    PortMySQL := ArqGlobal.ReadString('BDMYSQL','PORT','3306');
+    BDMySQL   := ArqGlobal.ReadString('BDMYSQL','BDNAME','genesys');
+    UserMySQL := ArqGlobal.ReadString('BDMYSQL','USER','root');
+    KeyMySQL  := ArqGlobal.ReadString('BDMYSQL','KEY','root');
+  finally
+    FreeAndNil(ArqGlobal);
+  end;
+end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
@@ -124,31 +154,31 @@ begin
     If not qyPedido.Active then
     begin
       qyPedido.Active := True;
-      qypedido.Edit;
-      qyPedido.Append;
-      qyPedido.FieldByName('data_emissao').AsDateTime := Now;
-      qyPedido.FieldByName('id_cliente').AsString := qyCliente.FieldByName('id').AsString;
     end;
+
+    qypedido.Edit;
+    qyPedido.Append;
+    qyPedido.FieldByName('data_emissao').AsDateTime := Now;
+    qyPedido.FieldByName('id_cliente').AsString := qyCliente.FieldByName('id').AsString;
 
 
     Quantidade := StrToFloat(edtQuantidade.Text);
     Valor := strToFloat(edtValor.Text);
     ValorTotal := (Quantidade * Valor);
 
-    if (qypedido.State <> dsEdit) and (qypedido.State <> dsInsert) then
-      qypedido.Edit;
 
     qyPedido.FieldByName('VALOR_TOTAL').AsFloat := qyPedido.FieldByName('VALOR_TOTAL').AsFloat + ValorTotal;
     edtSumValor.Text := qyPedido.FieldByName('VALOR_TOTAL').AsString;
 
     qyPedido.Post;
-    qyPedido.Refresh;
+
+    var id_pedido := qyPedido.Connection.GetLastAutoGenValue('');
 
     qyPedidoItens.Active := True;
     qyPedidoItens.Edit;
     qyPedidoItens.Append;
 
-    qyPedidoItens.FieldByName('ID_PEDIDO').AsString := qyPedido.FieldByName('ID').AsString;
+    qyPedidoItens.FieldByName('ID_PEDIDO').AsInteger := id_pedido;
     qyPedidoItens.FieldByName('ID_PRODUTO').AsString := qyProduto.FieldByName('ID').AsString;
     qyPedidoItens.FieldByName('QUANTIDADE').AsFloat := Quantidade;
     qyPedidoItens.FieldByName('VALOR_UNITARIO').AsFloat := Valor;
@@ -156,6 +186,8 @@ begin
 
     qyPedidoItens.Post;
     qyPedidoItens.Refresh;
+    qyPedido.Refresh;
+    ShowMessage('Pedido Adicionado.');
   except
    on e:exception do
     begin
@@ -192,6 +224,25 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  LeGlobal;
+
+  try
+    Conexao.Connected := False;
+    Conexao.Params.Values['Server']    := ServMySQL;
+    Conexao.Params.Values['Port']      := PortMySQL;
+    Conexao.Params.Values['Database']  := BDMySQL;
+    Conexao.Params.Values['User_Name'] := UserMySQL;
+    Conexao.Params.Values['Password']  := KeyMySQL;
+    Conexao.Params.Values['CharacterSet'] := 'utf8mb4';
+    Conexao.Connected := True;
+  except
+   on e: exception do
+    begin
+      ShowMessage('Erro ao conectar no banco de dados: ' + e.Message);
+      Application.Terminate;
+    end;
+  end;
+
   qyCliente.Active := True;
   qyProduto.Active := True;
   jaPossuiPedido := 'N';

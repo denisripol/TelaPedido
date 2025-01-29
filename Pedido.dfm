@@ -46,6 +46,7 @@ object Form1: TForm1
         Expanded = False
         FieldName = 'quantidade'
         Title.Caption = 'Quantidade'
+        Width = 64
         Visible = True
       end
       item
@@ -136,7 +137,7 @@ object Form1: TForm1
       Width = 337
       Height = 23
       KeyField = 'id'
-      ListField = 'Nome'
+      ListField = 'nome'
       ListSource = dsCliente
       TabOrder = 0
       OnExit = cbClienteExit
@@ -189,17 +190,17 @@ object Form1: TForm1
   end
   object Conexao: TFDConnection
     Params.Strings = (
-      'Database=PEDIDO'
-      'User_Name=castrillon'
-      'Password=castri123'
+      'Database=sys'
+      'User_Name=root'
+      'Password=123456'
       'Compress='
       'UseSSL=True'
       'ReadTimeout=3600'
       'WriteTimeout=3600'
       'CharacterSet=utf8mb4'
-      'Server=172.16.3.88'
-      'DriverID=MySQL')
-    Connected = True
+      'Server=localhost'
+      'DriverID=MySQL'
+      'MonitorBy=Remote')
     LoginPrompt = False
     Left = 536
     Top = 264
@@ -218,8 +219,8 @@ object Form1: TForm1
     Connection = Conexao
     SQL.Strings = (
       
-        'SELECT concat(Nome,'#39' - '#39',Cidade, '#39' - '#39', UF) nome,nome nome_c, id' +
-        '  FROM clientes')
+        'SELECT CAST(concat(Nome,'#39' - '#39',Cidade, '#39' - '#39', UF) AS CHAR(50)) no' +
+        'me,CAST(nome AS CHAR(50)) nome_c, id  FROM clientes')
     Left = 496
     Top = 336
     object qyClientenome: TWideStringField
@@ -228,7 +229,15 @@ object Form1: TForm1
       Origin = 'nome'
       ProviderFlags = []
       ReadOnly = True
-      Size = 170
+      Size = 66
+    end
+    object qyClientenome_c: TWideStringField
+      AutoGenerateValue = arDefault
+      FieldName = 'nome_c'
+      Origin = 'nome_c'
+      ProviderFlags = []
+      ReadOnly = True
+      Size = 66
     end
     object qyClienteid: TFDAutoIncField
       FieldName = 'id'
@@ -236,19 +245,13 @@ object Form1: TForm1
       ProviderFlags = [pfInWhere, pfInKey]
       ReadOnly = False
     end
-    object qyClientenome_c: TWideStringField
-      AutoGenerateValue = arDefault
-      FieldName = 'nome_c'
-      Origin = 'Nome'
-      Size = 93
-    end
   end
   object qyProduto: TFDQuery
     Connection = Conexao
     SQL.Strings = (
       
-        'SELECT concat(descricao,'#39' - '#39', preco_venda) nome, id, preco_vend' +
-        'a FROM produtos')
+        'SELECT cast(concat(descricao,'#39' - '#39', preco_venda) AS CHAR(50)) no' +
+        'me, id, preco_venda FROM produtos')
     Left = 504
     Top = 416
     object qyProdutonome: TWideStringField
@@ -257,7 +260,7 @@ object Form1: TForm1
       Origin = 'nome'
       ProviderFlags = []
       ReadOnly = True
-      Size = 113
+      Size = 66
     end
     object qyProdutoid: TFDAutoIncField
       FieldName = 'id'
@@ -350,6 +353,14 @@ object Form1: TForm1
       FieldName = 'id_cliente'
       Origin = 'id_cliente'
     end
+    object qyPedidonome_cliente: TWideMemoField
+      AutoGenerateValue = arDefault
+      FieldName = 'nome_cliente'
+      Origin = 'nome_cliente'
+      ProviderFlags = []
+      ReadOnly = True
+      BlobType = ftWideMemo
+    end
     object qyPedidovalor_total: TBCDField
       AutoGenerateValue = arDefault
       FieldName = 'valor_total'
@@ -357,31 +368,23 @@ object Form1: TForm1
       Precision = 10
       Size = 2
     end
-    object qyPedidonome_cliente: TWideStringField
-      AutoGenerateValue = arDefault
-      FieldName = 'nome_cliente'
-      Origin = 'nome_cliente'
-      ProviderFlags = []
-      ReadOnly = True
-      Size = 93
-    end
   end
   object qyPedidoItens: TFDQuery
     Connection = Conexao
     SQL.Strings = (
       'select pi.*,'
       
-        #9'   (select pr.descricao from produtos pr where pr.id = pi.id_pr' +
-        'oduto) nome_produto,'
+        #9'   cast((select pr.descricao from produtos pr where pr.id = pi.' +
+        'id_produto) AS CHAR(50)) nome_produto,'
       
-        '       (select (select c.nome from clientes c where c.id = pd.id' +
-        '_cliente) nome_cliente '
+        '       cast((select (select c.nome from clientes c where c.id = ' +
+        'pd.id_cliente) nome_cliente '
       '           from pedidos pd '
-      '           where pd.id = pi.id_pedido) cliente'
+      '           where pd.id = pi.id_pedido)AS CHAR(50)) cliente'
       'from pedidos_itens pi'
       'where pi.id_pedido = :id_pedido')
-    Left = 696
-    Top = 328
+    Left = 712
+    Top = 320
     ParamData = <
       item
         Name = 'ID_PEDIDO'
@@ -430,7 +433,7 @@ object Form1: TForm1
       Origin = 'nome_produto'
       ProviderFlags = []
       ReadOnly = True
-      Size = 93
+      Size = 66
     end
     object qyPedidoItenscliente: TWideStringField
       AutoGenerateValue = arDefault
@@ -438,7 +441,7 @@ object Form1: TForm1
       Origin = 'cliente'
       ProviderFlags = []
       ReadOnly = True
-      Size = 93
+      Size = 66
     end
   end
   object dsPedidoItens: TDataSource
@@ -484,5 +487,10 @@ object Form1: TForm1
       Precision = 10
       Size = 2
     end
+  end
+  object FDMoniRemoteClientLink1: TFDMoniRemoteClientLink
+    Tracing = True
+    Left = 376
+    Top = 240
   end
 end
